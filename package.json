@@ -1,0 +1,25 @@
+{
+  "name": "serendip-provider-mongodb",
+  "version": "1.0.2",
+  "description": "mongodb database provider for serendip framework",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm test"
+  },
+  "author": "Mohsen Esmaeili <m-esm@hotmail.com>",
+  "license": "ISC",
+  "dependencies": {
+    "deep-diff": "^1.0.2",
+    "mongodb": "^3.1.13",
+    "serendip-business-model": "^1.1.0"
+  },
+  "devDependencies": {
+    "@types/mongodb": "^3.1.19",
+    "deep-diff": "^1.0.2",
+    "fs-extra": "^7.0.1",
+    "gulp": "^3.9.1",
+    "gulp-mocha": "^6.0.0",
+    "gulp-typescript": "^5.0.0",
+    "typescript": "^3.3.3"
+  }
+}
