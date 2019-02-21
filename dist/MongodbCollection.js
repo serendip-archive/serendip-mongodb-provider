@@ -75,7 +75,7 @@ class MongodbCollection {
                     this.provider.changes.insertOne({
                         date: Date.now(),
                         model,
-                        diff: deep(result.value, model),
+                        diff: deep.diff(result.value, model),
                         type: serendip_business_model_1.EntityChangeType.Update,
                         userId: userId,
                         collection: this.collection.collectionName,
@@ -129,7 +129,7 @@ class MongodbCollection {
                     this.provider.changes.insertOne({
                         date: Date.now(),
                         model: model,
-                        diff: deep({}, model),
+                        diff: deep.diff({}, model),
                         type: serendip_business_model_1.EntityChangeType.Create,
                         userId: userId,
                         collection: this.collection.collectionName,

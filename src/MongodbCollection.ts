@@ -71,7 +71,7 @@ export class MongodbCollection<T> implements DbCollectionInterface<T> {
             this.provider.changes.insertOne({
               date: Date.now(),
               model,
-              diff: deep(result.value, model),
+              diff: deep.diff(result.value, model),
               type: EntityChangeType.Update,
               userId: userId,
               collection: this.collection.collectionName,
@@ -124,7 +124,7 @@ export class MongodbCollection<T> implements DbCollectionInterface<T> {
           this.provider.changes.insertOne({
             date: Date.now(),
             model: model,
-            diff: deep({}, model),
+            diff: deep.diff({}, model),
             type: EntityChangeType.Create,
             userId: userId,
             collection: this.collection.collectionName,
