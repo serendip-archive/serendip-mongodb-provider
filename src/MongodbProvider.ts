@@ -1,6 +1,5 @@
 import { Db, MongoClientOptions, MongoClient } from "mongodb";
-
-import * as deep from "deep-diff";
+ 
 
 import { MongodbCollection } from "./MongodbCollection";
 import {

@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongodb_1 = require("mongodb");
 const serendip_business_model_1 = require("serendip-business-model");
-const deep_diff_1 = require("deep-diff");
+const deep = require("deep-diff");
 class MongodbCollection {
     constructor(collection, track, provider) {
         this.collection = collection;
@@ -23,6 +23,8 @@ class MongodbCollection {
         });
     }
     find(query, skip, limit) {
+        if (query && query._id)
+            query._id = new mongodb_1.ObjectID(query._id);
         if (skip)
             skip = parseInt(skip);
         if (limit)
@@ -36,7 +38,10 @@ class MongodbCollection {
                     .toArray((err, results) => {
                     if (err)
                         return reject(err);
-                    return resolve(results);
+                    return resolve(results.map((p) => {
+                        p._id = p._id.toString();
+                        return p;
+                    }));
                 });
             else
                 this.collection.find(query).toArray((err, results) => {
@@ -50,6 +55,9 @@ class MongodbCollection {
         });
     }
     count(query) {
+        if (query && query._id) {
+            query._id = new mongodb_1.ObjectID(query._id);
+        }
         return this.collection.find(query).count();
     }
     updateOne(model, userId) {
@@ -67,7 +75,7 @@ class MongodbCollection {
                     this.provider.changes.insertOne({
                         date: Date.now(),
                         model,
-                        diff: deep_diff_1.default.diff(result.value, model),
+                        diff: deep(result.value, model),
                         type: serendip_business_model_1.EntityChangeType.Update,
                         userId: userId,
                         collection: this.collection.collectionName,
@@ -121,7 +129,7 @@ class MongodbCollection {
                     this.provider.changes.insertOne({
                         date: Date.now(),
                         model: model,
-                        diff: deep_diff_1.default.diff({}, model),
+                        diff: deep({}, model),
                         type: serendip_business_model_1.EntityChangeType.Create,
                         userId: userId,
                         collection: this.collection.collectionName,

@@ -3,7 +3,7 @@ import {
   EntityChangeType,
   DbCollectionInterface
 } from "serendip-business-model";
-import deep from "deep-diff";
+import * as deep from "deep-diff";
 
 import { MongodbProvider } from "./MongodbProvider";
 export class MongodbCollection<T> implements DbCollectionInterface<T> {
@@ -15,7 +15,9 @@ export class MongodbCollection<T> implements DbCollectionInterface<T> {
   public async ensureIndex(fieldOrSpec: any, options: IndexOptions) {
     await this.collection.createIndex(fieldOrSpec, options);
   }
-  public find(query, skip?: any, limit?: any): Promise<T[]> {
+  public find(query?, skip?: any, limit?: any): Promise<T[]> {
+    if (query && query._id) query._id = new ObjectID(query._id);
+
     if (skip) skip = parseInt(skip);
     if (limit) limit = parseInt(limit);
     return new Promise((resolve, reject) => {
@@ -26,7 +28,12 @@ export class MongodbCollection<T> implements DbCollectionInterface<T> {
           .limit(limit)
           .toArray((err, results) => {
             if (err) return reject(err);
-            return resolve(results);
+            return resolve(
+              results.map((p: any) => {
+                p._id = p._id.toString();
+                return p;
+              })
+            );
           });
       else
         this.collection.find<T>(query).toArray((err, results) => {
@@ -40,7 +47,10 @@ export class MongodbCollection<T> implements DbCollectionInterface<T> {
         });
     });
   }
-  public count(query): Promise<Number> {
+  public count(query?): Promise<Number> {
+    if (query && query._id) {
+      query._id = new ObjectID(query._id);
+    }
     return this.collection.find(query).count();
   }
   public updateOne(model: T, userId?: string): Promise<T> {
@@ -61,7 +71,7 @@ export class MongodbCollection<T> implements DbCollectionInterface<T> {
             this.provider.changes.insertOne({
               date: Date.now(),
               model,
-              diff: deep.diff(result.value, model),
+              diff: deep(result.value, model),
               type: EntityChangeType.Update,
               userId: userId,
               collection: this.collection.collectionName,
@@ -114,7 +124,7 @@ export class MongodbCollection<T> implements DbCollectionInterface<T> {
           this.provider.changes.insertOne({
             date: Date.now(),
             model: model,
-            diff: deep.diff({}, model),
+            diff: deep({}, model),
             type: EntityChangeType.Create,
             userId: userId,
             collection: this.collection.collectionName,
