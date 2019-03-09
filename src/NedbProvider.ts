@@ -1,18 +1,15 @@
-import { Db, MongoClientOptions, MongoClient } from "mongodb";
- 
+import { NedbCollection } from "./NedbCollection";
 
-import { MongodbCollection } from "./MongodbCollection";
+import * as nedb from "nedb";
 import {
   DbCollectionInterface,
   DbProviderInterface,
   EntityChangeModel
 } from "serendip-business-model";
-export class MongodbProvider implements DbProviderInterface {
+import { join } from "path";
+export class NedbProvider implements DbProviderInterface {
   changes: DbCollectionInterface<EntityChangeModel>;
-  /**
-   * Instance of mongodb database
-   */
-  private db: Db;
+  folderPath: string;
 
   public async collection<T>(
     collectionName: string,
@@ -27,38 +24,22 @@ export class MongodbProvider implements DbProviderInterface {
     //   if (Server.opts.logging == "info")
     //     console.log(`☑ collection ${collectionName} created .`);
     // }
+    let db: nedb;
 
-    return new MongodbCollection<T>(
-      this.db.collection(collectionName),
-      track,
-      this
-    );
+    if (this.folderPath)
+      db = new nedb({
+        filename: join(this.folderPath, `${collectionName}.nedb`),
+        autoload: true
+      });
+    else db = new nedb();
+
+    (db as any).collectionName = collectionName;
+    return new NedbCollection<T>(db, track, this);
   }
-  async initiate(options: any): Promise<void> {
+  async initiate(options: { folderPath: string }): Promise<void> {
+    this.folderPath = options.folderPath;
     try {
       // Creating mongoDB client from mongoUrl
-
-      let connectOptions: MongoClientOptions = {
-        useNewUrlParser: true
-      };
-
-      if (options.authSource) {
-        connectOptions.authSource = options.authSource;
-      }
-
-      if (options.user && options.password) {
-        connectOptions.auth = {
-          user: options.user,
-          password: options.password
-        };
-      }
-
-      var mongoClient = await MongoClient.connect(
-        options.mongoUrl,
-        connectOptions
-      );
-
-      this.db = mongoClient.db(options.mongoDb);
 
       this.changes = await this.collection<EntityChangeModel>(
         "EntityChanges",

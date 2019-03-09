@@ -1,5 +1,4 @@
 // created from 'create-ts-index'
 
-export * from './MongodbCollection';
-export * from './MongodbProvider';
-export * from './MongodbProviderOptions';
+export * from "./NedbCollection";
+export * from "./NedbProvider";
