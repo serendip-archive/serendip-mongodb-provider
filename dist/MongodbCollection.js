@@ -75,10 +75,10 @@ class MongodbCollection {
             }, (err, result) => {
                 if (err)
                     return reject(err);
-                if (this.track)
-                    this.provider.changes.insertOne({
+                if (this.track) {
+                    const trackRecord = {
                         date: Date.now(),
-                        model: !trackOptions && !trackOptions.metaOnly ? model : null,
+                        model: model,
                         diff: !trackOptions && !trackOptions.metaOnly
                             ? deep.diff(result.value, model)
                             : null,
@@ -86,7 +86,11 @@ class MongodbCollection {
                         userId: userId,
                         collection: this.collection.collectionName,
                         entityId: model["_id"]
-                    });
+                    };
+                    if (trackOptions && trackOptions.metaOnly)
+                        trackRecord.model = null;
+                    this.provider.changes.insertOne(trackRecord);
+                }
                 this.provider.events[this.collection.collectionName].emit("update", result.value);
                 resolve(result.value);
             });
