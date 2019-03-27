@@ -6,12 +6,18 @@ import {
 import * as deep from "deep-diff";
 
 import { MongodbProvider } from "./MongodbProvider";
+import { EventEmitter } from "events";
 export class MongodbCollection<T> implements DbCollectionInterface<T> {
   constructor(
     private collection: Collection,
     private track: boolean,
     private provider: MongodbProvider
-  ) {}
+  ) {
+    if (!provider.events) provider.events = {};
+
+    if (!provider.events[collection.collectionName])
+      provider.events[collection.collectionName] = new EventEmitter();
+  }
   public async ensureIndex(fieldOrSpec: any, options: IndexOptions) {
     await this.collection.createIndex(fieldOrSpec, options);
   }
@@ -53,7 +59,11 @@ export class MongodbCollection<T> implements DbCollectionInterface<T> {
     }
     return this.collection.find(query).count();
   }
-  public updateOne(model: T, userId?: string): Promise<T> {
+  public updateOne(
+    model: T,
+    userId?: string,
+    trackOptions?: { metaOnly: boolean }
+  ): Promise<T> {
     return new Promise((resolve, reject) => {
       model["_id"] = new ObjectID(model["_id"]);
       model["_vdate"] = Date.now();
@@ -66,22 +76,36 @@ export class MongodbCollection<T> implements DbCollectionInterface<T> {
         },
         (err, result) => {
           if (err) return reject(err);
-          resolve(result.value);
+
           if (this.track)
             this.provider.changes.insertOne({
               date: Date.now(),
-              model,
-              diff: deep.diff(result.value, model),
+              model: !trackOptions && !trackOptions.metaOnly ? model : null,
+              diff:
+                !trackOptions && !trackOptions.metaOnly
+                  ? deep.diff(result.value, model)
+                  : null,
               type: EntityChangeType.Update,
               userId: userId,
               collection: this.collection.collectionName,
               entityId: model["_id"]
             });
+
+          this.provider.events[this.collection.collectionName].emit(
+            "update",
+            result.value
+          );
+
+          resolve(result.value);
         }
       );
     });
   }
-  public deleteOne(_id: string | ObjectID, userId?: string): Promise<T> {
+  public deleteOne(
+    _id: string | ObjectID,
+    userId?: string,
+    trackOptions?: { metaOnly: boolean }
+  ): Promise<T> {
     return new Promise(async (resolve, reject) => {
       var model: any;
       var modelQuery = await this.find({ _id: new ObjectID(_id) });
@@ -91,16 +115,27 @@ export class MongodbCollection<T> implements DbCollectionInterface<T> {
         .deleteOne({ _id: new ObjectID(_id) })
         .then(async () => {
           if (this.track) {
-            await this.collection.insertOne({
+            let trackRecord = {
               date: Date.now(),
               diff: null,
               type: EntityChangeType.Delete,
               userId: userId,
               collection: this.collection.collectionName,
               entityId: _id,
-              model: model
-            });
+              model: null
+            };
+
+            if (trackOptions && trackOptions.metaOnly)
+              trackRecord.model = model;
+
+            await this.provider.changes.insertOne(trackRecord);
           }
+
+          this.provider.events[this.collection.collectionName].emit(
+            "delete",
+            model
+          );
+
           resolve(model);
         })
         .catch(err => {
@@ -111,25 +146,41 @@ export class MongodbCollection<T> implements DbCollectionInterface<T> {
         });
     });
   }
-  public insertOne(model: T | any, userId?: string): Promise<T> {
+  public insertOne(
+    model: T | any,
+    userId?: string,
+    trackOptions?: { metaOnly: boolean }
+  ): Promise<T> {
     model["_vdate"] = Date.now();
     return new Promise((resolve, reject) => {
       var objectId: ObjectID = new ObjectID();
       if (model._id && typeof model._id == "string")
         model._id = new ObjectID(model._id);
       if (!model._id) model._id = new ObjectID();
-      var doc = this.collection.insertOne(model, (err, result) => {
+      var doc = this.collection.insertOne(model, async (err, result) => {
         if (err) return reject(err);
-        if (this.track)
-          this.provider.changes.insertOne({
+        if (this.track) {
+          const trackRecord = {
             date: Date.now(),
-            model: model,
-            diff: deep.diff({}, model),
+            model: !trackOptions && !trackOptions.metaOnly ? model : null,
+            diff:
+              !trackOptions && !trackOptions.metaOnly
+                ? deep.diff({}, model)
+                : null,
             type: EntityChangeType.Create,
             userId: userId,
             collection: this.collection.collectionName,
             entityId: model._id
-          });
+          };
+
+          if (trackOptions && trackOptions.metaOnly) trackRecord.model = null;
+          await this.provider.changes.insertOne(trackRecord);
+        }
+        this.provider.events[this.collection.collectionName].emit(
+          "insert",
+          model
+        );
+
         resolve(model);
       });
     });

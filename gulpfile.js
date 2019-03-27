@@ -2,23 +2,16 @@ var gulp = require("gulp");
 var ts = require("gulp-typescript");
 var fs = require("fs-extra");
 var mocha = require("gulp-mocha");
+var runSequence = require("run-sequence");
 
 var paths = {
   dist: "dist",
   tsSources: "src/**/*.ts",
-  tests: "test/*.js"
+  tests: "dist/test/*.js"
 };
 
-gulp.task("test", ["ts"], function() {
-  return gulp.src([paths.tests], { read: false }).pipe(
-    mocha({
-      reporter: "spec"
-    })
-  );
-});
-
 // compile typescripts
-gulp.task("ts", function() {
+function build() {
   if (fs.existsSync(paths.dist)) {
     fs.emptyDirSync(paths.dist);
   }
@@ -38,10 +31,20 @@ gulp.task("ts", function() {
       })
     )
     .pipe(gulp.dest(paths.dist));
-});
+}
 
-gulp.watch(paths.tsSources, ["ts"]);
+function test() {
+  return gulp.src([paths.tests], { read: false }).pipe(
+    mocha({
+      reporter: "spec",
+      exit: true
+    })
+  );
+}
 
-gulp.task("default", ["ts"], function() {
-  return Promise.resolve();
-});
+gulp.watch(paths.tsSources, gulp.series(build, test));
+
+exports.test = gulp.series(build, test);
+exports.build = gulp.series(build);
+
+exports.default = gulp.series(build, test);

@@ -10,7 +10,27 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongodb_1 = require("mongodb");
 const MongodbCollection_1 = require("./MongodbCollection");
+const events_1 = require("events");
 class MongodbProvider {
+    constructor() {
+        // you can listen for  any "update","delete","insert" event. each event emitter is accessible trough property named same as collectionName
+        this.events = {};
+    }
+    dropDatabase() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return this.db.dropDatabase();
+        });
+    }
+    dropCollection(name) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return this.db.dropCollection(name);
+        });
+    }
+    collections() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return (yield this.db.collections()).map(p => p.collectionName);
+        });
+    }
     collection(collectionName, track) {
         return __awaiter(this, void 0, void 0, function* () {
             collectionName = collectionName.trim();
@@ -20,6 +40,8 @@ class MongodbProvider {
             //   if (Server.opts.logging == "info")
             //     console.log(`☑ collection ${collectionName} created .`);
             // }
+            if (!this.events[collectionName])
+                this.events[collectionName] = new events_1.EventEmitter();
             return new MongodbCollection_1.MongodbCollection(this.db.collection(collectionName), track, this);
         });
     }

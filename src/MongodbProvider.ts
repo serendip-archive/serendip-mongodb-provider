@@ -1,5 +1,4 @@
 import { Db, MongoClientOptions, MongoClient } from "mongodb";
- 
 
 import { MongodbCollection } from "./MongodbCollection";
 import {
@@ -7,12 +6,29 @@ import {
   DbProviderInterface,
   EntityChangeModel
 } from "serendip-business-model";
+import { EventEmitter } from "events";
+
 export class MongodbProvider implements DbProviderInterface {
   changes: DbCollectionInterface<EntityChangeModel>;
   /**
    * Instance of mongodb database
    */
   private db: Db;
+
+  // you can listen for  any "update","delete","insert" event. each event emitter is accessible trough property named same as collectionName
+  public events: { [key: string]: EventEmitter } = {};
+
+  public async dropDatabase() {
+    return this.db.dropDatabase();
+  }
+
+  public async dropCollection(name: string) {
+    return this.db.dropCollection(name);
+  }
+
+  public async collections(): Promise<string[]> {
+    return (await this.db.collections()).map(p => p.collectionName);
+  }
 
   public async collection<T>(
     collectionName: string,
@@ -28,6 +44,8 @@ export class MongodbProvider implements DbProviderInterface {
     //     console.log(`☑ collection ${collectionName} created .`);
     // }
 
+    if (!this.events[collectionName])
+      this.events[collectionName] = new EventEmitter();
     return new MongodbCollection<T>(
       this.db.collection(collectionName),
       track,

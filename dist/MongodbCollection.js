@@ -11,11 +11,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mongodb_1 = require("mongodb");
 const serendip_business_model_1 = require("serendip-business-model");
 const deep = require("deep-diff");
+const events_1 = require("events");
 class MongodbCollection {
     constructor(collection, track, provider) {
         this.collection = collection;
         this.track = track;
         this.provider = provider;
+        if (!provider.events)
+            provider.events = {};
+        if (!provider.events[collection.collectionName])
+            provider.events[collection.collectionName] = new events_1.EventEmitter();
     }
     ensureIndex(fieldOrSpec, options) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -60,7 +65,7 @@ class MongodbCollection {
         }
         return this.collection.find(query).count();
     }
-    updateOne(model, userId) {
+    updateOne(model, userId, trackOptions) {
         return new Promise((resolve, reject) => {
             model["_id"] = new mongodb_1.ObjectID(model["_id"]);
             model["_vdate"] = Date.now();
@@ -70,21 +75,24 @@ class MongodbCollection {
             }, (err, result) => {
                 if (err)
                     return reject(err);
-                resolve(result.value);
                 if (this.track)
                     this.provider.changes.insertOne({
                         date: Date.now(),
-                        model,
-                        diff: deep.diff(result.value, model),
+                        model: !trackOptions && !trackOptions.metaOnly ? model : null,
+                        diff: !trackOptions && !trackOptions.metaOnly
+                            ? deep.diff(result.value, model)
+                            : null,
                         type: serendip_business_model_1.EntityChangeType.Update,
                         userId: userId,
                         collection: this.collection.collectionName,
                         entityId: model["_id"]
                     });
+                this.provider.events[this.collection.collectionName].emit("update", result.value);
+                resolve(result.value);
             });
         });
     }
-    deleteOne(_id, userId) {
+    deleteOne(_id, userId, trackOptions) {
         return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
             var model;
             var modelQuery = yield this.find({ _id: new mongodb_1.ObjectID(_id) });
@@ -96,16 +104,20 @@ class MongodbCollection {
                 .deleteOne({ _id: new mongodb_1.ObjectID(_id) })
                 .then(() => __awaiter(this, void 0, void 0, function* () {
                 if (this.track) {
-                    yield this.collection.insertOne({
+                    let trackRecord = {
                         date: Date.now(),
                         diff: null,
                         type: serendip_business_model_1.EntityChangeType.Delete,
                         userId: userId,
                         collection: this.collection.collectionName,
                         entityId: _id,
-                        model: model
-                    });
+                        model: null
+                    };
+                    if (trackOptions && trackOptions.metaOnly)
+                        trackRecord.model = model;
+                    yield this.provider.changes.insertOne(trackRecord);
                 }
+                this.provider.events[this.collection.collectionName].emit("delete", model);
                 resolve(model);
             }))
                 .catch(err => {
@@ -114,7 +126,7 @@ class MongodbCollection {
             });
         }));
     }
-    insertOne(model, userId) {
+    insertOne(model, userId, trackOptions) {
         model["_vdate"] = Date.now();
         return new Promise((resolve, reject) => {
             var objectId = new mongodb_1.ObjectID();
@@ -122,21 +134,28 @@ class MongodbCollection {
                 model._id = new mongodb_1.ObjectID(model._id);
             if (!model._id)
                 model._id = new mongodb_1.ObjectID();
-            var doc = this.collection.insertOne(model, (err, result) => {
+            var doc = this.collection.insertOne(model, (err, result) => __awaiter(this, void 0, void 0, function* () {
                 if (err)
                     return reject(err);
-                if (this.track)
-                    this.provider.changes.insertOne({
+                if (this.track) {
+                    const trackRecord = {
                         date: Date.now(),
-                        model: model,
-                        diff: deep.diff({}, model),
+                        model: !trackOptions && !trackOptions.metaOnly ? model : null,
+                        diff: !trackOptions && !trackOptions.metaOnly
+                            ? deep.diff({}, model)
+                            : null,
                         type: serendip_business_model_1.EntityChangeType.Create,
                         userId: userId,
                         collection: this.collection.collectionName,
                         entityId: model._id
-                    });
+                    };
+                    if (trackOptions && trackOptions.metaOnly)
+                        trackRecord.model = null;
+                    yield this.provider.changes.insertOne(trackRecord);
+                }
+                this.provider.events[this.collection.collectionName].emit("insert", model);
                 resolve(model);
-            });
+            }));
         });
     }
 }
