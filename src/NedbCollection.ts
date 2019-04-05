@@ -1,4 +1,6 @@
-import { Collection, ObjectID, IndexOptions } from "mongodb";
+import * as nedb from "nedb";
+import * as _ from "underscore";
+import ObjectID from "bson-objectid";
 import {
   EntityChangeType,
   DbCollectionInterface
@@ -9,7 +11,7 @@ import { MongodbProvider } from "./MongodbProvider";
 import { EventEmitter } from "events";
 export class MongodbCollection<T> implements DbCollectionInterface<T> {
   constructor(
-    private collection: Collection,
+    private collection: nedb,
     private track: boolean,
     private provider: MongodbProvider
   ) {
@@ -32,7 +34,7 @@ export class MongodbCollection<T> implements DbCollectionInterface<T> {
           .find<T>(query)
           .skip(skip)
           .limit(limit)
-          .toArray((err, results) => {
+          .exec((err, results) => {
             if (err) return reject(err);
             return resolve(
               results.map((p: any) => {
@@ -42,7 +44,7 @@ export class MongodbCollection<T> implements DbCollectionInterface<T> {
             );
           });
       else
-        this.collection.find<T>(query).toArray((err, results) => {
+        this.collection.find<T>(query).exec((err, results) => {
           if (err) return reject(err);
           return resolve(
             results.map((p: any) => {
@@ -54,10 +56,16 @@ export class MongodbCollection<T> implements DbCollectionInterface<T> {
     });
   }
   public count(query?): Promise<Number> {
-    if (query && query._id) {
-      query._id = new ObjectID(query._id);
-    }
-    return this.collection.find(query).count();
+    return new Promise((resolve, reject) => {
+      if (query && query._id) {
+        query._id = new ObjectID(query._id);
+      }
+      this.collection.count(query, (err, count) => {
+        if (err) return reject(err);
+
+        resolve(count);
+      });
+    });
   }
   public updateOne(
     model: T,
@@ -69,14 +77,14 @@ export class MongodbCollection<T> implements DbCollectionInterface<T> {
     return new Promise((resolve, reject) => {
       model["_id"] = new ObjectID(model["_id"]);
       model["_vdate"] = Date.now();
-      this.collection.findOneAndUpdate(
+      this.collection.update(
         { _id: model["_id"] },
         { $set: model },
         {
           upsert: true,
-          returnOriginal: false
+          returnUpdatedDocs: true
         },
-        (err, result) => {
+        (err, number, docs) => {
           if (err) return reject(err);
 
           if (this.track) {
@@ -86,7 +94,7 @@ export class MongodbCollection<T> implements DbCollectionInterface<T> {
               diff: null,
               type: EntityChangeType.Update,
               userId: userId,
-              collection: this.collection.collectionName,
+              collection: this.collectionName,
               entityId: model["_id"]
             };
 
@@ -126,7 +134,7 @@ export class MongodbCollection<T> implements DbCollectionInterface<T> {
               diff: null,
               type: EntityChangeType.Delete,
               userId: userId,
-              collection: this.collection.collectionName,
+              collection: this.collectionName,
               entityId: _id,
               model: null
             };
@@ -148,8 +156,8 @@ export class MongodbCollection<T> implements DbCollectionInterface<T> {
           console.error(
             `error in deleting ${_id} from ${this.collection.collectionName}`
           );
-          reject(err);
-        });
+        }
+      });
     });
   }
   public insertOne(
@@ -174,7 +182,7 @@ export class MongodbCollection<T> implements DbCollectionInterface<T> {
             diff: null,
             type: EntityChangeType.Create,
             userId: userId,
-            collection: this.collection.collectionName,
+            collection: this.collectionName,
             entityId: model._id
           };
 
