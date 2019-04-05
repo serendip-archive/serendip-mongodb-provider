@@ -66,6 +66,8 @@ class MongodbCollection {
         return this.collection.find(query).count();
     }
     updateOne(model, userId, trackOptions) {
+        if (!trackOptions)
+            trackOptions = {};
         return new Promise((resolve, reject) => {
             model["_id"] = new mongodb_1.ObjectID(model["_id"]);
             model["_vdate"] = Date.now();
@@ -78,17 +80,17 @@ class MongodbCollection {
                 if (this.track) {
                     const trackRecord = {
                         date: Date.now(),
-                        model: model,
-                        diff: !trackOptions && !trackOptions.metaOnly
-                            ? deep.diff(result.value, model)
-                            : null,
+                        model: null,
+                        diff: null,
                         type: serendip_business_model_1.EntityChangeType.Update,
                         userId: userId,
                         collection: this.collection.collectionName,
                         entityId: model["_id"]
                     };
-                    if (trackOptions && trackOptions.metaOnly)
-                        trackRecord.model = null;
+                    if (!trackOptions.metaOnly) {
+                        trackRecord.model = model;
+                        trackRecord.diff = deep.diff(result.value, model);
+                    }
                     this.provider.changes.insertOne(trackRecord);
                 }
                 this.provider.events[this.collection.collectionName].emit("update", result.value);
@@ -132,6 +134,8 @@ class MongodbCollection {
     }
     insertOne(model, userId, trackOptions) {
         model["_vdate"] = Date.now();
+        if (!trackOptions)
+            trackOptions = {};
         return new Promise((resolve, reject) => {
             var objectId = new mongodb_1.ObjectID();
             if (model._id && typeof model._id == "string")
@@ -142,19 +146,19 @@ class MongodbCollection {
                 if (err)
                     return reject(err);
                 if (this.track) {
-                    const trackRecord = {
+                    let trackRecord = {
                         date: Date.now(),
-                        model: !trackOptions && !trackOptions.metaOnly ? model : null,
-                        diff: !trackOptions && !trackOptions.metaOnly
-                            ? deep.diff({}, model)
-                            : null,
+                        model: null,
+                        diff: null,
                         type: serendip_business_model_1.EntityChangeType.Create,
                         userId: userId,
                         collection: this.collection.collectionName,
                         entityId: model._id
                     };
-                    if (trackOptions && trackOptions.metaOnly)
-                        trackRecord.model = null;
+                    if (!trackOptions.metaOnly) {
+                        trackRecord.model = model;
+                        trackRecord.diff = deep.diff({}, model);
+                    }
                     yield this.provider.changes.insertOne(trackRecord);
                 }
                 this.provider.events[this.collection.collectionName].emit("insert", model);

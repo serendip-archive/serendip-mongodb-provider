@@ -1,6 +1,6 @@
 {
   "name": "serendip-mongodb-provider",
-  "version": "1.0.8",
+  "version": "1.0.10",
   "description": "mongodb database provider for serendip framework",
   "main": "index.js",
   "scripts": {
