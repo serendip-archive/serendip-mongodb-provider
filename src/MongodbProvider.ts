@@ -1,6 +1,6 @@
 import { Db, MongoClientOptions, MongoClient } from "mongodb";
 
-import * as nedb from "nedb";
+import { MongodbCollection } from "./MongodbCollection";
 import {
   DbCollectionInterface,
   DbProviderInterface,
@@ -10,7 +10,10 @@ import { EventEmitter } from "events";
 
 export class MongodbProvider implements DbProviderInterface {
   changes: DbCollectionInterface<EntityChangeModel>;
-  folderPath: string;
+  /**
+   * Instance of mongodb database
+   */
+  private db: Db;
 
   // you can listen for  any "update","delete","insert" event. each event emitter is accessible trough property named same as collectionName
   public events: { [key: string]: EventEmitter } = {};
@@ -40,7 +43,6 @@ export class MongodbProvider implements DbProviderInterface {
     //   if (Server.opts.logging == "info")
     //     console.log(`☑ collection ${collectionName} created .`);
     // }
-    let db: nedb;
 
     if (!this.events[collectionName])
       this.events[collectionName] = new EventEmitter();
@@ -50,10 +52,31 @@ export class MongodbProvider implements DbProviderInterface {
       this
     );
   }
-  async initiate(options: { folderPath: string }): Promise<void> {
-    this.folderPath = options.folderPath;
+  async initiate(options: any): Promise<void> {
     try {
       // Creating mongoDB client from mongoUrl
+
+      let connectOptions: MongoClientOptions = {
+        useNewUrlParser: true
+      };
+
+      if (options.authSource) {
+        connectOptions.authSource = options.authSource;
+      }
+
+      if (options.user && options.password) {
+        connectOptions.auth = {
+          user: options.user,
+          password: options.password
+        };
+      }
+
+      var mongoClient = await MongoClient.connect(
+        options.mongoUrl,
+        connectOptions
+      );
+
+      this.db = mongoClient.db(options.mongoDb);
 
       this.changes = await this.collection<EntityChangeModel>(
         "EntityChanges",
