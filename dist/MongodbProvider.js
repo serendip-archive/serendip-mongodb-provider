@@ -31,6 +31,21 @@ class MongodbProvider {
             return (yield this.db.collections()).map(p => p.collectionName);
         });
     }
+    stats() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const stat = yield this.db.stats({ scale: 1024 * 1024 });
+            return {
+                db: stat.db,
+                collections: stat.collections,
+                indexes: stat.indexes,
+                avgObjSizeByte: stat.avgObjSize,
+                objects: stat.objects,
+                fsUsedMB: stat.fsUsedSize,
+                fsTotalMB: stat.fsTotalSize,
+                storageMB: stat.storageSize
+            };
+        });
+    }
     collection(collectionName, track) {
         return __awaiter(this, void 0, void 0, function* () {
             collectionName = collectionName.trim();
@@ -63,6 +78,7 @@ class MongodbProvider {
                 }
                 var mongoClient = yield mongodb_1.MongoClient.connect(options.mongoUrl, connectOptions);
                 this.db = mongoClient.db(options.mongoDb);
+                console.log(yield this.stats());
                 this.changes = yield this.collection("EntityChanges", false);
             }
             catch (error) {

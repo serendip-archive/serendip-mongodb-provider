@@ -69,6 +69,7 @@ export class MongodbCollection<T> implements DbCollectionInterface<T> {
     return new Promise((resolve, reject) => {
       model["_id"] = new ObjectID(model["_id"]);
       model["_vdate"] = Date.now();
+ 
       this.collection.findOneAndUpdate(
         { _id: model["_id"] },
         { $set: model },

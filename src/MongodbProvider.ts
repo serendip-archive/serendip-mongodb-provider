@@ -30,6 +30,29 @@ export class MongodbProvider implements DbProviderInterface {
     return (await this.db.collections()).map(p => p.collectionName);
   }
 
+  public async stats(): Promise<{
+    db: string;
+    collections: number;
+    indexes: number;
+    avgObjSizeByte: number;
+    objects: number;
+    storageMB: number;
+    fsUsedMB: number;
+    fsTotalMB: number;
+  }> {
+    const stat = await this.db.stats({ scale: 1024 * 1024 });
+    return {
+      db: stat.db,
+      collections: stat.collections,
+      indexes: stat.indexes,
+      avgObjSizeByte: stat.avgObjSize,
+      objects: stat.objects,
+      fsUsedMB: stat.fsUsedSize,
+      fsTotalMB: stat.fsTotalSize,
+      storageMB: stat.storageSize
+    };
+  }
+
   public async collection<T>(
     collectionName: string,
     track?: boolean
@@ -77,7 +100,7 @@ export class MongodbProvider implements DbProviderInterface {
       );
 
       this.db = mongoClient.db(options.mongoDb);
-
+ 
       this.changes = await this.collection<EntityChangeModel>(
         "EntityChanges",
         false

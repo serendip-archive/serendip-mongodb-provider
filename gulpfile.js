@@ -1,8 +1,7 @@
 var gulp = require("gulp");
 var ts = require("gulp-typescript");
 var fs = require("fs-extra");
-var mocha = require("gulp-mocha");
-var runSequence = require("run-sequence");
+var mocha = require("gulp-mocha"); 
 
 var paths = {
   dist: "dist",
