@@ -13,17 +13,7 @@ describe("insert scenarios", () => {
   let provider: DbProviderInterface;
   let collection: DbCollectionInterface<any>;
 
-  new MongodbProvider()
-    .initiate({
-      mongoDb: "helpia",
-      mongoUrl: process.env["db.mongoUrl"],
-      authSource: process.env["db.authSource"],
-      user: process.env["db.user"],
-      password: process.env["db.password"]
-    })
-    .then()
-    .catch();
-
+ 
   beforeEach(done => {
     (async () => {
       // runs before each test in this block
