@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const assert = require("assert");
 const MongodbProvider_1 = require("../MongodbProvider");
-describe("update scenarios", () => {
+describe("delete scenarios", () => {
     let provider;
     let collection;
     beforeEach(done => {
@@ -32,53 +32,41 @@ describe("update scenarios", () => {
             done();
         }))();
     });
-    it("should return updated", done => {
+    it("should return deleted", done => {
         (() => __awaiter(this, void 0, void 0, function* () {
             let model = yield collection.insertOne({
                 hello: true
             });
+            let insertId = model._id;
+            model = yield collection.deleteOne(model._id);
             assert.equal(model.hello, true);
-            model.hello = false;
-            model = yield collection.updateOne(model);
-            assert.equal(model.hello, false);
-            done();
+            assert.equal(model._id, insertId);
         }))()
-            .then(() => { })
+            .then(done)
             .catch(done);
     });
-    it("should upsert", done => {
+    it("should delete", done => {
         (() => __awaiter(this, void 0, void 0, function* () {
-            yield collection.updateOne({ upserted: true });
-            done();
+            const model = yield collection.insertOne({
+                _id: "5c6e96da5da4508426d6f25b",
+                toBeDeleted: true
+            });
+            yield collection.deleteOne(model._id);
         }))()
-            .then(() => { })
+            .then(done)
             .catch(done);
     });
-    it("should get update event", done => {
+    it("should get delete event", done => {
         (() => __awaiter(this, void 0, void 0, function* () {
             let model = yield collection.insertOne({
                 hello: true
             });
-            assert.equal(model.hello, true);
-            model.hello = false;
-            provider.events["test"].on("update", doc => {
-                assert.equal(model.hello, false);
+            provider.events["test"].on("delete", doc => {
                 assert.equal(model._id.toString(), doc._id.toString());
+                assert.equal(model.hello, doc.hello);
                 done();
             });
-            model = yield collection.updateOne(model);
-            assert.equal(model.hello, false);
-        }))()
-            .then(() => { })
-            .catch(done);
-    });
-    it("should do more upserts", done => {
-        (() => __awaiter(this, void 0, void 0, function* () {
-            yield collection.updateOne({ upserted1: true });
-            yield collection.updateOne({ upserted2: true });
-            yield collection.updateOne({ upserted3: true });
-            yield collection.updateOne({ upserted4: true });
-            done();
+            model = yield collection.deleteOne(model._id);
         }))()
             .then(() => { })
             .catch(done);

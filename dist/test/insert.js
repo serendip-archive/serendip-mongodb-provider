@@ -46,7 +46,7 @@ describe("insert scenarios", () => {
     });
     it("should get simple insert event", done => {
         (() => __awaiter(this, void 0, void 0, function* () {
-            provider.events.test.on("insert", doc => {
+            provider.events["test"].on("insert", doc => {
                 assert.equal(doc.hello, true);
                 done();
             });
@@ -70,4 +70,17 @@ describe("insert scenarios", () => {
             .then(done)
             .catch(done);
     });
+    // it("should do more inserts", done => {
+    //   (async () => {
+    //     const test = (fs.readFileSync('test.jpg', { encoding: 'base64' }));
+    //     for (let index = 0; index < 10; index++) {
+    //       await collection.insertOne({
+    //         index,
+    //         test
+    //       });
+    //     }
+    //   })()
+    //     .then(done)
+    //     .catch(done);
+    // }).timeout(0);
 });

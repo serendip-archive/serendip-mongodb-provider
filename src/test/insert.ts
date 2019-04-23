@@ -12,8 +12,6 @@ dotenv.config();
 describe("insert scenarios", () => {
   let provider: DbProviderInterface;
   let collection: DbCollectionInterface<any>;
-
- 
   beforeEach(done => {
     (async () => {
       // runs before each test in this block
@@ -39,15 +37,20 @@ describe("insert scenarios", () => {
       const model = await collection.insertOne({
         hello: true
       });
+
+
       assert.equal(model.hello, true);
     })()
       .then(done)
       .catch(done);
   });
 
+
+
   it("should get simple insert event", done => {
     (async () => {
-      provider.events.test.on("insert", doc => {
+      provider.events["test"].on("insert", doc => {
+
         assert.equal(doc.hello, true);
         done();
       });
@@ -58,7 +61,7 @@ describe("insert scenarios", () => {
 
       assert.equal(model.hello, true);
     })()
-      .then(() => {})
+      .then(() => { })
       .catch(done);
   });
 
@@ -75,4 +78,23 @@ describe("insert scenarios", () => {
       .then(done)
       .catch(done);
   });
+
+
+  // it("should do more inserts", done => {
+  //   (async () => {
+  //     const test = (fs.readFileSync('test.jpg', { encoding: 'base64' }));
+  //     for (let index = 0; index < 10; index++) {
+
+  //       await collection.insertOne({
+  //         index,
+  //         test
+  //       });
+  //     }
+
+  //   })()
+  //     .then(done)
+  //     .catch(done);
+  // }).timeout(0);
+
+
 });

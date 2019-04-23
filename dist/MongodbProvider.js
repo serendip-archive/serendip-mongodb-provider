@@ -78,7 +78,6 @@ class MongodbProvider {
                 }
                 var mongoClient = yield mongodb_1.MongoClient.connect(options.mongoUrl, connectOptions);
                 this.db = mongoClient.db(options.mongoDb);
-                console.log(yield this.stats());
                 this.changes = yield this.collection("EntityChanges", false);
             }
             catch (error) {
