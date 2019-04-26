@@ -31,6 +31,32 @@ class MongodbProvider {
             return (yield this.db.collections()).map(p => p.collectionName);
         });
     }
+    openUploadStreamByFilePath(filePath, metadata) {
+        return __awaiter(this, void 0, void 0, function* () {
+            for (const file of yield this.files.find({
+                filename: filePath
+            })) {
+                yield this.files.deleteOne(file._id);
+                for (const chunk of yield this.fileChunks.find({ files_id: new mongodb_1.ObjectID(file._id) })) {
+                    yield this.fileChunks.deleteOne(chunk._id);
+                }
+            }
+            return this.bucket.openUploadStream(filePath, {
+                metadata
+            });
+        });
+    }
+    openDownloadStreamByFilePath(filePath, opts) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!opts)
+                opts = {};
+            return this.bucket.openDownloadStreamByName(filePath, {
+                revision: opts.revision,
+                start: opts.start,
+                end: opts.end
+            });
+        });
+    }
     stats() {
         return __awaiter(this, void 0, void 0, function* () {
             const stat = yield this.db.stats({ scale: 1024 * 1024 });
@@ -78,7 +104,10 @@ class MongodbProvider {
                 }
                 var mongoClient = yield mongodb_1.MongoClient.connect(options.mongoUrl, connectOptions);
                 this.db = mongoClient.db(options.mongoDb);
+                this.bucket = new mongodb_1.GridFSBucket(this.db);
                 this.changes = yield this.collection("EntityChanges", false);
+                this.files = yield this.collection('fs.files');
+                this.fileChunks = yield this.collection('fs.chunks');
             }
             catch (error) {
                 throw new Error("\n\nUnable to connect to MongoDb. Error details: \n" + error.message);

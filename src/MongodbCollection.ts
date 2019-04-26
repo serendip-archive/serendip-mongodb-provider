@@ -1,4 +1,4 @@
-import { Collection, ObjectID, IndexOptions } from "mongodb";
+import { Collection, ObjectID, IndexOptions, GridFSBucket } from "mongodb";
 import {
   EntityChangeType,
   DbCollectionInterface
@@ -18,6 +18,10 @@ export class MongodbCollection<T> implements DbCollectionInterface<T> {
     if (!provider.events[collection.collectionName])
       provider.events[collection.collectionName] = new EventEmitter();
   }
+
+
+  
+
   public async ensureIndex(fieldOrSpec: any, options: IndexOptions) {
     await this.collection.createIndex(fieldOrSpec, options);
   }
@@ -69,7 +73,7 @@ export class MongodbCollection<T> implements DbCollectionInterface<T> {
     return new Promise((resolve, reject) => {
       model["_id"] = new ObjectID(model["_id"]);
       model["_vdate"] = Date.now();
- 
+
       this.collection.findOneAndUpdate(
         { _id: model["_id"] },
         { $set: model },

@@ -1,4 +1,4 @@
-import { Db, MongoClientOptions, MongoClient } from "mongodb";
+import { Db, MongoClientOptions, MongoClient, GridFSBucket, ObjectID } from "mongodb";
 
 import { MongodbCollection } from "./MongodbCollection";
 import {
@@ -7,16 +7,23 @@ import {
   EntityChangeModel
 } from "serendip-business-model";
 import { EventEmitter } from "events";
+import * as fs from 'fs';
+import { Writable, Readable } from "stream";
 
 export class MongodbProvider implements DbProviderInterface {
   changes: DbCollectionInterface<EntityChangeModel>;
+
   /**
    * Instance of mongodb database
    */
-  private db: Db;
+  public db: Db;
 
   // you can listen for  any "update","delete","insert" event. each event emitter is accessible trough property named same as collectionName
   public events: { [key: string]: EventEmitter } = {};
+
+  bucket: GridFSBucket;
+  files: DbCollectionInterface<any>;
+  fileChunks: DbCollectionInterface<any>;
 
   public async dropDatabase() {
     return this.db.dropDatabase();
@@ -29,6 +36,40 @@ export class MongodbProvider implements DbProviderInterface {
   public async collections(): Promise<string[]> {
     return (await this.db.collections()).map(p => p.collectionName);
   }
+
+  public async openUploadStreamByFilePath(filePath: string, metadata: any): Promise<Writable> {
+
+    for (const file of await this.files.find({
+      filename: filePath
+    })) {
+
+      await this.files.deleteOne(file._id);
+      for (const chunk of await this.fileChunks.find({ files_id: new ObjectID(file._id) })) {
+        await this.fileChunks.deleteOne(chunk._id);
+      }
+    }
+
+    return this.bucket.openUploadStream(filePath, {
+      metadata
+    }) as Writable;
+
+  }
+
+
+  public async openDownloadStreamByFilePath(filePath: string, opts?: { start?: number, end?: number, revision?: number }): Promise<Readable> {
+
+    if (!opts)
+      opts = {};
+
+    return this.bucket.openDownloadStreamByName(filePath, {
+      revision: opts.revision,
+      start: opts.start,
+      end: opts.end
+    }) as Readable;
+
+  }
+
+
 
   public async stats(): Promise<{
     db: string;
@@ -100,11 +141,20 @@ export class MongodbProvider implements DbProviderInterface {
       );
 
       this.db = mongoClient.db(options.mongoDb);
- 
+
+
+      this.bucket = new GridFSBucket(this.db);
+
+
       this.changes = await this.collection<EntityChangeModel>(
         "EntityChanges",
         false
       );
+
+      this.files = await this.collection<any>('fs.files');
+      this.fileChunks = await this.collection<any>('fs.chunks');
+
+
     } catch (error) {
       throw new Error(
         "\n\nUnable to connect to MongoDb. Error details: \n" + error.message
