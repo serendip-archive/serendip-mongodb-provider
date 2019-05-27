@@ -3,7 +3,7 @@ import {
   EntityChangeType,
   DbCollectionInterface
 } from "serendip-business-model";
-import * as deep from "deep-diff";
+import { applyOperation, compare } from 'fast-json-patch'
 
 import { MongodbProvider } from "./MongodbProvider";
 import { EventEmitter } from "events";
@@ -20,7 +20,7 @@ export class MongodbCollection<T> implements DbCollectionInterface<T> {
   }
 
 
-  
+
 
   public async ensureIndex(fieldOrSpec: any, options: IndexOptions) {
     await this.collection.createIndex(fieldOrSpec, options);
@@ -97,7 +97,7 @@ export class MongodbCollection<T> implements DbCollectionInterface<T> {
 
             if (!trackOptions.metaOnly) {
               trackRecord.model = model;
-              trackRecord.diff = deep.diff(result.value, model);
+              trackRecord.diff = compare(result.value, model);
             }
             this.provider.changes.insertOne(trackRecord);
           }
@@ -185,7 +185,7 @@ export class MongodbCollection<T> implements DbCollectionInterface<T> {
 
           if (!trackOptions.metaOnly) {
             trackRecord.model = model;
-            trackRecord.diff = deep.diff({}, model);
+            trackRecord.diff = compare({}, model);
           }
           await this.provider.changes.insertOne(trackRecord);
         }

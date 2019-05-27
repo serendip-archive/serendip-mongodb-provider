@@ -47,3 +47,6 @@ exports.test = gulp.series(build, test);
 exports.build = gulp.series(build);
 
 exports.default = gulp.series(build, test);
+
+
+gulp.task('default',this.default);

@@ -10,9 +10,9 @@
   "author": "Mohsen Esmaeili <m-esm@hotmail.com>",
   "license": "ISC",
   "dependencies": {
-    "deep-diff": "^1.0.2",
-    "serendip-business-model": "^1.1.11",
-    "mongodb": "^3.2.2"
+    "fast-json-patch": "^2.1.0",
+    "mongodb": "^3.2.2",
+    "serendip-business-model": "^1.1.11"
   },
   "devDependencies": {
     "@types/deep-diff": "^1.0.0",

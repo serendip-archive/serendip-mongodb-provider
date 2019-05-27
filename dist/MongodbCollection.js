@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongodb_1 = require("mongodb");
 const serendip_business_model_1 = require("serendip-business-model");
-const deep = require("deep-diff");
+const fast_json_patch_1 = require("fast-json-patch");
 const events_1 = require("events");
 class MongodbCollection {
     constructor(collection, track, provider) {
@@ -89,7 +89,7 @@ class MongodbCollection {
                     };
                     if (!trackOptions.metaOnly) {
                         trackRecord.model = model;
-                        trackRecord.diff = deep.diff(result.value, model);
+                        trackRecord.diff = fast_json_patch_1.compare(result.value, model);
                     }
                     this.provider.changes.insertOne(trackRecord);
                 }
@@ -157,7 +157,7 @@ class MongodbCollection {
                     };
                     if (!trackOptions.metaOnly) {
                         trackRecord.model = model;
-                        trackRecord.diff = deep.diff({}, model);
+                        trackRecord.diff = fast_json_patch_1.compare({}, model);
                     }
                     yield this.provider.changes.insertOne(trackRecord);
                 }
