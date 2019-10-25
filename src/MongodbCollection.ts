@@ -1,9 +1,15 @@
-import { Collection, ObjectID, IndexOptions, GridFSBucket } from "mongodb";
+import {
+  Collection,
+  ObjectID,
+  IndexOptions,
+  GridFSBucket,
+  CollectionAggregationOptions
+} from "mongodb";
 import {
   EntityChangeType,
   DbCollectionInterface
 } from "serendip-business-model";
-import { applyOperation, compare } from 'fast-json-patch'
+import { applyOperation, compare } from "fast-json-patch";
 
 import { MongodbProvider } from "./MongodbProvider";
 import { EventEmitter } from "events";
@@ -19,11 +25,12 @@ export class MongodbCollection<T> implements DbCollectionInterface<T> {
       provider.events[collection.collectionName] = new EventEmitter();
   }
 
-
-
-
   public async ensureIndex(fieldOrSpec: any, options: IndexOptions) {
     await this.collection.createIndex(fieldOrSpec, options);
+  }
+
+  public aggregate(pipeline: any[], options: CollectionAggregationOptions) {
+    return this.collection.aggregate(pipeline, options).toArray();
   }
   public find(query?, skip?: any, limit?: any): Promise<T[]> {
     if (query && query._id) query._id = new ObjectID(query._id);

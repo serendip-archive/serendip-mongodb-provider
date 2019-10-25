@@ -27,6 +27,9 @@ class MongodbCollection {
             yield this.collection.createIndex(fieldOrSpec, options);
         });
     }
+    aggregate(pipeline, options) {
+        return this.collection.aggregate(pipeline, options).toArray();
+    }
     find(query, skip, limit) {
         if (query && query._id)
             query._id = new mongodb_1.ObjectID(query._id);
