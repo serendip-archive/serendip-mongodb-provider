@@ -3,11 +3,11 @@ import {
   ObjectID,
   IndexOptions,
   GridFSBucket,
-  CollectionAggregationOptions
 } from "mongodb";
 import {
   EntityChangeType,
-  DbCollectionInterface
+  DbCollectionInterface,
+  CollectionAggregationOptions
 } from "serendip-business-model";
 import { applyOperation, compare } from "fast-json-patch";
 
@@ -30,7 +30,7 @@ export class MongodbCollection<T> implements DbCollectionInterface<T> {
   }
 
   public aggregate(pipeline: any[], options: CollectionAggregationOptions) {
-    return this.collection.aggregate(pipeline, options).toArray();
+    return this.collection.aggregate(pipeline, options as any).toArray();
   }
   public find(query?, skip?: any, limit?: any): Promise<T[]> {
     if (query && query._id) query._id = new ObjectID(query._id);
