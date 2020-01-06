@@ -24,12 +24,15 @@ export class MongodbProvider implements DbProviderInterface {
   bucket: GridFSBucket;
   files: DbCollectionInterface<any>;
   fileChunks: DbCollectionInterface<any>;
+  client: MongoClient;
 
   public async dropDatabase() {
     return this.db.dropDatabase();
   }
 
   public async dropCollection(name: string) {
+
+
     return this.db.dropCollection(name);
   }
 
@@ -116,6 +119,10 @@ export class MongodbProvider implements DbProviderInterface {
       this
     );
   }
+
+  async close() {
+    return this.client.close(true)
+  }
   async initiate(options: any): Promise<void> {
     try {
       // Creating mongoDB client from mongoUrl
@@ -135,12 +142,13 @@ export class MongodbProvider implements DbProviderInterface {
         };
       }
 
-      var mongoClient = await MongoClient.connect(
+      this.client = await MongoClient.connect(
         options.mongoUrl,
         connectOptions
       );
 
-      this.db = mongoClient.db(options.mongoDb);
+      this.db = this.client.db(options.mongoDb);
+
 
 
       this.bucket = new GridFSBucket(this.db);

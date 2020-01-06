@@ -86,6 +86,11 @@ class MongodbProvider {
             return new MongodbCollection_1.MongodbCollection(this.db.collection(collectionName), track, this);
         });
     }
+    close() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return this.client.close(true);
+        });
+    }
     initiate(options) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -102,8 +107,8 @@ class MongodbProvider {
                         password: options.password
                     };
                 }
-                var mongoClient = yield mongodb_1.MongoClient.connect(options.mongoUrl, connectOptions);
-                this.db = mongoClient.db(options.mongoDb);
+                this.client = yield mongodb_1.MongoClient.connect(options.mongoUrl, connectOptions);
+                this.db = this.client.db(options.mongoDb);
                 this.bucket = new mongodb_1.GridFSBucket(this.db);
                 this.changes = yield this.collection("EntityChanges", false);
                 this.files = yield this.collection('fs.files');
