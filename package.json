@@ -10,7 +10,7 @@
   "author": "Mohsen Esmaeili <m-esm@hotmail.com>",
   "license": "ISC",
   "dependencies": {
-    "fast-json-patch": "^2.1.0",
+    "fast-json-patch": "^3.1.1",
     "mongodb": "^3.2.2",
     "serendip-business-model": "^1.1.13"
   },
